@@ -95,12 +95,15 @@ print("updating any ads since latest refresh of ads_daily at %s" % (latest_refre
 # have been superseded by ads uploaded by the current refresh (i.e. ads that have
 # been updated by the facebook API rather than newly created)
 
-query_params = [
-    bigquery.ScalarQueryParameter("latest_refresh", "TIMESTAMP", latest_refresh)
-]
-bq_execute("""DELETE FROM illuminocracy.ads_daily WHERE ad_id IN
-    (SELECT id FROM illuminocracy.ads WHERE capture_date_time > @latest_refresh)""", query_params)
+# for some reason this isn't working at the moment, so switching to full refresh for now
 
+#query_params = [
+#    bigquery.ScalarQueryParameter("latest_refresh", "TIMESTAMP", latest_refresh)
+#]
+#bq_execute("""DELETE FROM illuminocracy.ads_daily WHERE ad_id IN
+#    (SELECT id FROM illuminocracy.ads WHERE capture_date_time > @latest_refresh)""", query_params)
+
+bq_execute("""DELETE FROM illuminocracy.ads_daily WHERE 1=1""")
 
 
 # run query to insert non GBP ads
@@ -144,9 +147,9 @@ bq_execute("""INSERT INTO illuminocracy.ads_daily (ad_id,
     WHERE A.currency != 'GBP'
     AND DD.delivery_end > '2019-08-24'
     AND D.day > '2019-08-24'
-    AND A.capture_date_time > @latest_refresh
-  """, query_params)
 
+  """)#, query_params)
+#    AND A.capture_date_time > @latest_refresh
 
 # run query to insert GBP ads
 
@@ -188,9 +191,9 @@ bq_execute("""INSERT INTO illuminocracy.ads_daily (ad_id,
     WHERE A.currency = 'GBP'
     AND DD.delivery_end > '2019-08-24'
     AND D.day > '2019-08-24'
-    AND A.capture_date_time > @latest_refresh
-  """, query_params)
 
+  """)#, query_params)
+#     AND A.capture_date_time > @latest_refresh
 
 # run query to insert ads with null funding entity
 
@@ -226,9 +229,9 @@ bq_execute("""INSERT INTO illuminocracy.ads_daily (ad_id,
     AND A.currency = 'GBP'
     AND DD.delivery_end > '2019-08-24'
     AND D.day > '2019-08-24'
-    AND A.capture_date_time > @latest_refresh
-  """, query_params)
 
+  """)#, query_params)
+#    AND A.capture_date_time > @latest_refresh
 
 
 
