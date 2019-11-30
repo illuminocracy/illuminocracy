@@ -130,12 +130,12 @@ bq_execute("""INSERT INTO illuminocracy.ads_daily (ad_id,
   SELECT
     A.id, D.day, A.funding_entity, F.affiliation_party, F.affiliation_brexit,
     A.page_id, A.page_name,
-    (A.spend_lower / R.gbp_value) / DD.days_running,
-    (A.spend_upper / R.gbp_value) / DD.days_running,
-    ((((A.spend_upper - A.spend_lower) / 2) + A.spend_lower) / R.gbp_value) / DD.days_running,
-    A.impressions_lower / DD.days_running,
-    A.impressions_upper / DD.days_running,
-    (((A.impressions_upper - A.impressions_lower) / 2) + A.impressions_lower) / DD.days_running,
+    (IFNULL(A.spend_lower,A.spend_upper) / R.gbp_value) / DD.days_running,
+    (IFNULL(A.spend_upper,A.spend_lower) / R.gbp_value) / DD.days_running,
+    ((((IFNULL(A.spend_upper,A.spend_lower) - IFNULL(A.spend_lower,A.spend_upper)) / 2) + IFNULL(A.spend_lower,A.spend_upper)) / R.gbp_value) / DD.days_running,
+    IFNULL(A.impressions_lower,A.impressions_upper) / DD.days_running,
+    IFNULL(A.impressions_upper,A.impressions_lower) / DD.days_running,
+    (((IFNULL(A.impressions_upper,A.impressions_lower) - IFNULL(A.impressions_lower,A.impressions_upper)) / 2) + IFNULL(A.impressions_lower,A.impressions_upper)) / DD.days_running,
     CURRENT_TIMESTAMP()
   FROM
     illuminocracy.ads A
@@ -147,7 +147,6 @@ bq_execute("""INSERT INTO illuminocracy.ads_daily (ad_id,
     WHERE A.currency != 'GBP'
     AND DD.delivery_end > '2019-08-24'
     AND D.day > '2019-08-24'
-
   """)#, query_params)
 #    AND A.capture_date_time > @latest_refresh
 
@@ -175,12 +174,12 @@ bq_execute("""INSERT INTO illuminocracy.ads_daily (ad_id,
   SELECT
     A.id, D.day, A.funding_entity, F.affiliation_party, F.affiliation_brexit,
     A.page_id, A.page_name,
-    A.spend_lower / DD.days_running,
-    A.spend_upper / DD.days_running,
-    (((A.spend_upper - A.spend_lower) / 2) + A.spend_lower) / DD.days_running,
-    A.impressions_lower / DD.days_running,
-    A.impressions_upper / DD.days_running,
-    (((A.impressions_upper - A.impressions_lower) / 2) + A.impressions_lower) / DD.days_running,
+    IFNULL(A.spend_lower,A.spend_upper) / DD.days_running,
+    IFNULL(A.spend_upper,A.spend_lower) / DD.days_running,
+    (((IFNULL(A.spend_upper,A.spend_lower) - IFNULL(A.spend_lower,A.spend_upper)) / 2) + IFNULL(A.spend_lower,A.spend_upper)) / DD.days_running,
+    IFNULL(A.impressions_lower,A.impressions_upper) / DD.days_running,
+    IFNULL(A.impressions_upper,A.impressions_lower) / DD.days_running,
+    (((IFNULL(A.impressions_upper,A.impressions_lower) - IFNULL(A.impressions_lower,A.impressions_upper)) / 2) + IFNULL(A.impressions_lower,A.impressions_upper)) / DD.days_running,
     CURRENT_TIMESTAMP()
   FROM
     illuminocracy.ads A
@@ -191,7 +190,6 @@ bq_execute("""INSERT INTO illuminocracy.ads_daily (ad_id,
     WHERE A.currency = 'GBP'
     AND DD.delivery_end > '2019-08-24'
     AND D.day > '2019-08-24'
-
   """)#, query_params)
 #     AND A.capture_date_time > @latest_refresh
 
@@ -214,12 +212,12 @@ bq_execute("""INSERT INTO illuminocracy.ads_daily (ad_id,
   SELECT
     A.id, D.day, A.funding_entity, NULL, NULL,
     A.page_id, A.page_name,
-    A.spend_lower / DD.days_running,
-    A.spend_upper / DD.days_running,
-    (((A.spend_upper - A.spend_lower) / 2) + A.spend_lower) / DD.days_running,
-    A.impressions_lower / DD.days_running,
-    A.impressions_upper / DD.days_running,
-    (((A.impressions_upper - A.impressions_lower) / 2) + A.impressions_lower) / DD.days_running,
+    IFNULL(A.spend_lower,A.spend_upper) / DD.days_running,
+    IFNULL(A.spend_upper,A.spend_lower) / DD.days_running,
+    (((IFNULL(A.spend_upper,A.spend_lower) - IFNULL(A.spend_lower,A.spend_upper)) / 2) + IFNULL(A.spend_lower,A.spend_upper)) / DD.days_running,
+    IFNULL(A.impressions_lower,A.impressions_upper) / DD.days_running,
+    IFNULL(A.impressions_upper,A.impressions_lower) / DD.days_running,
+    (((IFNULL(A.impressions_upper,A.impressions_lower) - IFNULL(A.impressions_lower,A.impressions_upper)) / 2) + IFNULL(A.impressions_lower,A.impressions_upper)) / DD.days_running,
     CURRENT_TIMESTAMP()
   FROM
     illuminocracy.ads A
@@ -229,7 +227,6 @@ bq_execute("""INSERT INTO illuminocracy.ads_daily (ad_id,
     AND A.currency = 'GBP'
     AND DD.delivery_end > '2019-08-24'
     AND D.day > '2019-08-24'
-
   """)#, query_params)
 #    AND A.capture_date_time > @latest_refresh
 
