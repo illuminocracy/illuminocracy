@@ -68,6 +68,22 @@ if latest_refresh is None:
 
 print("updating any ads since latest refresh of ads_daily at %s" % (latest_refresh))
 
+# check for duplicate ads
+
+print("checking for duplicates in illuminocracy.ads")
+
+result = bq_execute("""SELECT count(*) c, num FROM
+    (SELECT id, count(*) num FROM illuminocracy.ads GROUP BY id) GROUP BY num""")
+for row in result:
+    num_ads = row['c']
+    num_occurences = row['num']
+    print("there are %d ads that appear %d times" % (num_ads, num_occurences))
+    if num_occurences > 1:
+        print("duplicates detected - aborting")
+        exit()
+
+
+# update ads_delivery
 
 bq_execute("DELETE FROM illuminocracy.ads_delivery WHERE 1=1")
 bq_execute("""INSERT INTO illuminocracy.ads_delivery (ad_id, delivery_start, delivery_end, currently_running)

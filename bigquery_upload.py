@@ -297,11 +297,9 @@ c.execute("SELECT MIN(capture_date_time) AS refresh_cutoff FROM ads WHERE upload
 result = c.fetchall()
 refresh_cutoff = result[0]['refresh_cutoff']
 
-c.execute("UPDATE ads SET uploaded = 1 WHERE uploaded = 0")
-
-delete_local_csv('ads.csv')
-
 # remove old versions of any duplicate ads
+
+print("refresh cutoff is %s, deleting any older ads that are duplicated from illuminocracy.ads")
 
 query_params = [
     bigquery.ScalarQueryParameter("refresh_cutoff", "TIMESTAMP", refresh_cutoff)
@@ -309,6 +307,9 @@ query_params = [
 bq_execute("""DELETE FROM illuminocracy.ads WHERE id IN
     (SELECT id FROM illuminocracy.ads GROUP BY id HAVING COUNT(*) > 1 ) AND capture_date_time < @refresh_cutoff""", query_params)
 
+c.execute("UPDATE ads SET uploaded = 1 WHERE uploaded = 0")
+
+delete_local_csv('ads.csv')
 
 
 ########## LOAD: ad_keywords
