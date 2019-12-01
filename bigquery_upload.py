@@ -17,6 +17,10 @@ gc_service_account = 'illuminocracy'
 gc_service_account_key = 'data-transparency-8a55cfd7dd39.json'
 bq_dataset = 'illuminocracy'
 
+UPLOAD_DEMOGRAPHICS = False
+UPLOAD_KEYWORDS = False
+UPLOAD_REGION = False
+
 def dict_factory(cursor, row):
     d = {}
     for idx, col in enumerate(cursor.description):
@@ -299,7 +303,7 @@ refresh_cutoff = result[0]['refresh_cutoff']
 
 # remove old versions of any duplicate ads
 
-print("refresh cutoff is %s, deleting any older ads that are duplicated from illuminocracy.ads")
+print("refresh cutoff is %s, deleting any older ads that are duplicated from illuminocracy.ads" % (refresh_cutoff))
 
 query_params = [
     bigquery.ScalarQueryParameter("refresh_cutoff", "TIMESTAMP", refresh_cutoff)
@@ -314,62 +318,72 @@ delete_local_csv('ads.csv')
 
 ########## LOAD: ad_keywords
 
-query_to_csv("SELECT ad_id, keyword FROM ad_keywords WHERE uploaded = 0",
-    'ad_keywords.csv',
-    ['ad_id', 'keyword'])
+if UPLOAD_KEYWORDS == True:
 
-gcs_upload_blob('ad_keywords.csv')
+    query_to_csv("SELECT ad_id, keyword FROM ad_keywords WHERE uploaded = 0",
+        'ad_keywords.csv',
+        ['ad_id', 'keyword'])
 
-schema = [
-    bigquery.SchemaField('ad_id', 'INT64', mode='REQUIRED'),
-    bigquery.SchemaField('keyword', 'STRING', mode='REQUIRED')  # defaults to NULLABLE
-]
+    gcs_upload_blob('ad_keywords.csv')
 
-bq_load_csv_in_gcs('ad_keywords.csv', 'ad_keywords', schema, write_disposition = 'WRITE_APPEND')
+    schema = [
+        bigquery.SchemaField('ad_id', 'INT64', mode='REQUIRED'),
+        bigquery.SchemaField('keyword', 'STRING', mode='REQUIRED')  # defaults to NULLABLE
+    ]
 
-c.execute("UPDATE ad_keywords SET uploaded = 1 WHERE uploaded = 0")
+    bq_load_csv_in_gcs('ad_keywords.csv', 'ad_keywords', schema, write_disposition = 'WRITE_APPEND')
 
-delete_local_csv('ad_keywords.csv')
+    c.execute("UPDATE ad_keywords SET uploaded = 1 WHERE uploaded = 0")
+
+    delete_local_csv('ad_keywords.csv')
 
 
 ########## LOAD: ads_distribution_region
 
-query_to_csv("SELECT ad_id, region, percentage FROM ads_distribution_region WHERE uploaded = 0",
-    'ads_distribution_region.csv',
-    ['ad_id', 'region', 'percentage'])
+if UPLOAD_REGION == True:
 
-gcs_upload_blob('ads_distribution_region.csv')
+    query_to_csv("SELECT ad_id, region, percentage FROM ads_distribution_region WHERE uploaded = 0",
+        'ads_distribution_region.csv',
+        ['ad_id', 'region', 'percentage'])
 
-schema = [
-    bigquery.SchemaField('ad_id', 'INT64', mode='REQUIRED'),
-    bigquery.SchemaField('region', 'STRING', mode='REQUIRED'),
-    bigquery.SchemaField('percentage', 'FLOAT64', mode='REQUIRED')  # defaults to NULLABLE
-]
+    gcs_upload_blob('ads_distribution_region.csv')
 
-bq_load_csv_in_gcs('ads_distribution_region.csv', 'ads_distribution_region', schema, write_disposition = 'WRITE_APPEND')
+    schema = [
+        bigquery.SchemaField('ad_id', 'INT64', mode='REQUIRED'),
+        bigquery.SchemaField('region', 'STRING', mode='REQUIRED'),
+        bigquery.SchemaField('percentage', 'FLOAT64', mode='REQUIRED')  # defaults to NULLABLE
+    ]
 
-c.execute("UPDATE ads_distribution_region SET uploaded = 1 WHERE uploaded = 0")
+    bq_load_csv_in_gcs('ads_distribution_region.csv', 'ads_distribution_region', schema, write_disposition = 'WRITE_APPEND')
 
-delete_local_csv('ads_distribution_region.csv')
+    c.execute("UPDATE ads_distribution_region SET uploaded = 1 WHERE uploaded = 0")
+
+    delete_local_csv('ads_distribution_region.csv')
 
 
 ########## LOAD: ads_distribution_demographics
 
-query_to_csv("SELECT ad_id, age, gender, percentage FROM ads_distribution_demographics WHERE uploaded = 0",
-    'ads_distribution_demographics.csv',
-    ['ad_id', 'age', 'gender', 'percentage'])
+if UPLOAD_DEMOGRAPHICS == True:
 
-gcs_upload_blob('ads_distribution_demographics.csv')
+    query_to_csv("SELECT ad_id, age, gender, percentage FROM ads_distribution_demographics WHERE uploaded = 0",
+        'ads_distribution_demographics.csv',
+        ['ad_id', 'age', 'gender', 'percentage'])
 
-schema = [
-    bigquery.SchemaField('ad_id', 'INT64', mode='REQUIRED'),
-    bigquery.SchemaField('age', 'STRING', mode='REQUIRED'),
-    bigquery.SchemaField('gender', 'STRING', mode='REQUIRED'),
-    bigquery.SchemaField('percentage', 'FLOAT64', mode='REQUIRED')  # defaults to NULLABLE
-]
+    gcs_upload_blob('ads_distribution_demographics.csv')
 
-bq_load_csv_in_gcs('ads_distribution_demographics.csv', 'ads_distribution_demographics', schema, write_disposition = 'WRITE_APPEND')
+    schema = [
+        bigquery.SchemaField('ad_id', 'INT64', mode='REQUIRED'),
+        bigquery.SchemaField('age', 'STRING', mode='REQUIRED'),
+        bigquery.SchemaField('gender', 'STRING', mode='REQUIRED'),
+        bigquery.SchemaField('percentage', 'FLOAT64', mode='REQUIRED')  # defaults to NULLABLE
+    ]
 
-c.execute("UPDATE ads_distribution_demographics SET uploaded = 1 WHERE uploaded = 0")
+    bq_load_csv_in_gcs('ads_distribution_demographics.csv', 'ads_distribution_demographics', schema, write_disposition = 'WRITE_APPEND')
 
-delete_local_csv('ads_distribution_demographics.csv')
+    c.execute("UPDATE ads_distribution_demographics SET uploaded = 1 WHERE uploaded = 0")
+
+    delete_local_csv('ads_distribution_demographics.csv')
+
+
+conn.commit()
+conn.close()

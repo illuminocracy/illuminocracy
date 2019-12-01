@@ -98,14 +98,14 @@ bq_execute("""UPDATE illuminocracy.ads_delivery SET days_running = DATE_DIFF(del
 
 # find most recently added row to ads_daily
 
-result = bq_execute("SELECT MAX(added_date_time) AS latest_refresh FROM illuminocracy.ads_daily")
-for row in result:
-    latest_refresh = row['latest_refresh']
+#result = bq_execute("SELECT MAX(added_date_time) AS latest_refresh FROM illuminocracy.ads_daily")
+#for row in result:
+#    latest_refresh = row['latest_refresh']
 
-if latest_refresh is None:
-    latest_refresh = '2019-01-01 00:00:00'
+#if latest_refresh is None:
+#    latest_refresh = '2019-01-01 00:00:00'
 
-print("updating any ads since latest refresh of ads_daily at %s" % (latest_refresh))
+#print("updating any ads since latest refresh of ads_daily at %s" % (latest_refresh))
 
 # delete any ads that are still in the ads_daily table from the last refresh but
 # have been superseded by ads uploaded by the current refresh (i.e. ads that have
@@ -141,10 +141,10 @@ bq_execute("""INSERT INTO illuminocracy.ads_daily (ad_id,
   WITH large_funding_entities AS (
     SELECT funding_entity FROM illuminocracy.ads GROUP BY funding_entity
     HAVING SUM(spend_upper) > 10000),
-    affiliations AS (SELECT funding_entity, affiliation_party, affiliation_brexit
-    FROM illuminocracy.funding_entity_affiliations GROUP BY funding_entity, affiliation_party, affiliation_brexit)
+    affiliations AS (SELECT funding_entity, MAX(affiliation_party) aff_party, MAX(affiliation_brexit) aff_brexit
+    FROM illuminocracy.funding_entity_affiliations GROUP BY funding_entity)
   SELECT
-    A.id, D.day, A.funding_entity, F.affiliation_party, F.affiliation_brexit,
+    A.id, D.day, A.funding_entity, F.aff_party, F.aff_brexit,
     A.page_id, A.page_name,
     (IFNULL(A.spend_lower,A.spend_upper) / R.gbp_value) / DD.days_running,
     (IFNULL(A.spend_upper,A.spend_lower) / R.gbp_value) / DD.days_running,
@@ -185,10 +185,10 @@ bq_execute("""INSERT INTO illuminocracy.ads_daily (ad_id,
   WITH large_funding_entities AS (
     SELECT funding_entity FROM illuminocracy.ads GROUP BY funding_entity
     HAVING SUM(spend_upper) > 10000),
-    affiliations AS (SELECT funding_entity, affiliation_party, affiliation_brexit
-    FROM illuminocracy.funding_entity_affiliations GROUP BY funding_entity, affiliation_party, affiliation_brexit)
+    affiliations AS (SELECT funding_entity, MAX(affiliation_party) aff_party, MAX(affiliation_brexit) aff_brexit
+    FROM illuminocracy.funding_entity_affiliations GROUP BY funding_entity)
   SELECT
-    A.id, D.day, A.funding_entity, F.affiliation_party, F.affiliation_brexit,
+    A.id, D.day, A.funding_entity, F.aff_party, F.aff_brexit,
     A.page_id, A.page_name,
     IFNULL(A.spend_lower,A.spend_upper) / DD.days_running,
     IFNULL(A.spend_upper,A.spend_lower) / DD.days_running,
