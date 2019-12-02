@@ -52,7 +52,8 @@ CREATE TABLE illuminocracy.ads_daily (
   impressions_lower float64,
   impressions_upper float64,
   impressions_mid float64,
-  added_date_time timestamp not null
+  added_date_time timestamp not null,
+  batch_id int64
 );
 
 -- generate in bigquery - incremental load
@@ -73,7 +74,8 @@ CREATE TABLE illuminocracy.ads_daily_with_demographics (
   impressions_mid float64,
   age string,
   gender string,
-  added_date_time timestamp not null
+  added_date_time timestamp not null,
+  batch_id int64
 );
 
 -- generate in bigquery - truncate this table every time and repopulate it to make populating ads_daily easier
@@ -83,7 +85,8 @@ CREATE TABLE illuminocracy.ads_delivery (
   delivery_start date,
   delivery_end date,
   currently_running bool,
-  days_running int64
+  days_running int64,
+  batch_id int64
 );
 
 -- local ad staging table - upload to bigquery incrementally
@@ -106,14 +109,18 @@ CREATE TABLE illuminocracy.ads (
   spend_upper int64,
   impressions_lower int64,
   impressions_upper int64,
-  capture_date_time timestamp not null
+  capture_date_time timestamp not null,
+  batch_id int64,
+  active bool,
+  became_inactive timestamp
 );
 
 -- local ad staging table - upload to bigquery incrementally
 
 CREATE TABLE illuminocracy.ad_keywords (
   ad_id int64 not null,
-  keyword string not null
+  keyword string not null,
+  batch_id int64
 );
 
 -- local ad staging table - upload to bigquery incrementally
@@ -121,7 +128,8 @@ CREATE TABLE illuminocracy.ad_keywords (
 CREATE TABLE illuminocracy.ads_distribution_region (
   ad_id int64 not null,
   region string not null,
-  percentage float64 not null
+  percentage float64 not null,
+  batch_id int64
 );
 
 -- local ad staging table - upload to bigquery incrementally
@@ -130,7 +138,8 @@ CREATE TABLE illuminocracy.ads_distribution_demographics (
   ad_id int64 not null,
   age string not null,
   gender string not null,
-  percentage float64 not null
+  percentage float64 not null,
+  batch_id int64
 );
 
 -- local table - truncate and reload to bigquery

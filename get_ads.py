@@ -10,6 +10,12 @@ import datetime
 import yaml
 import re
 
+# SET THIS VALUE TO INSTRUCT SCRIPT WHETHER TO DOWNLOAD ALL ADS OR ONLY ACTIVE ADS
+
+ACTIVE_ADS = 0
+
+
+
 def dict_factory(cursor, row):
     d = {}
     for idx, col in enumerate(cursor.description):
@@ -36,6 +42,19 @@ print("using facebook access token: '%s'" % (access_token))
 #
 #print("existing ads in database: %d" % (len(all_ids)))
 
+# add new entry to the batch table and generate new batch id
+
+batch_time = datetime.datetime.now();
+c.execute("SELECT MAX(id) id FROM batch")
+result = c.fetchall()
+batch_id = int(result[0]['id']) + 1
+
+c.execute("INSERT INTO batch (id,start_time,active_only) VALUES (?,?,?)",
+    [batch_id, batch_time, ACTIVE_ADS])
+
+
+# get search terms to run through to download ads
+
 c.execute("SELECT term FROM search_terms")
 result = c.fetchall()
 search_terms = [r['term'] for r in result] # get first column of each result row
@@ -44,7 +63,6 @@ print("search terms to download (%d): %s" % (len(search_terms), search_terms))
 
 
 
-#exit()
 
 fields_to_return = [
     'page_id',
@@ -73,7 +91,11 @@ fields_to_return_joined = ",".join(fields_to_return)
 #initial_request = """https://graph.facebook.com/v4.0/ads_archive?search_terms='""" + search_term + """'&ad_reached_countries=['GB']&access_token=""" + access_token + """&ad_type=POLITICAL_AND_ISSUE_ADS&ad_active_status=ALL&fields=page_id,impressions,page_name,spend,funding_entity,currency,demographic_distribution,region_distribution,ad_creative_body,ad_delivery_start_time,ad_delivery_stop_time,ad_snapshot_url,ad_creative_link_title,ad_creative_link_description,ad_creative_link_caption,ad_creation_time"""
 
 #active only
-ads_active = 'ACTIVE'
+
+if ACTIVE_ADS == 0:
+    ads_active = 'ALL'
+else:
+    ads_active = 'ACTIVE'
 
 #active and inactive
 #ads_active = 'ALL'
@@ -159,6 +181,9 @@ for search_term in search_terms:
 
             #print(ad_distribution_demographics)
 
+            c.execute("INSERT INTO batch_ad_ids (batch_id, ad_id) VALUES (?,?)",
+                [batch_id, ad_data['id']])
+
             # Check if this is an ad we have seen before
 
             ad_to_be_inserted = True
@@ -243,7 +268,8 @@ for search_term in search_terms:
                     impressions_lower,
                     impressions_upper,
                     capture_date_time,
-                    uploaded)
+                    uploaded,
+                    batch_id)
                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", [
                         ad_data['id'],
                         ad_data['creation_time'],
@@ -263,23 +289,24 @@ for search_term in search_terms:
                         ad_data['impressions_lower'],
                         ad_data['impressions_upper'],
                         datetime.datetime.now(),
-                        0
+                        0,
+                        batch_id
                     ])
 
                 for region in ad_distribution_region:
-                    c.execute("INSERT INTO ads_distribution_region (ad_id, region, percentage, uploaded) VALUES (?,?,?,0)",
-                        [ad_data['id'], region['region'], region['percentage']])
+                    c.execute("INSERT INTO ads_distribution_region (ad_id, region, percentage, uploaded, batch_id) VALUES (?,?,?,0,?)",
+                        [ad_data['id'], region['region'], region['percentage'], batch_id])
 
                 for demographic in ad_distribution_demographics:
-                    c.execute("INSERT INTO ads_distribution_demographics (ad_id, age, gender, percentage, uploaded) VALUES (?,?,?,?,0)",
-                        [ad_data['id'], demographic['age'], demographic['gender'], demographic['percentage']])
+                    c.execute("INSERT INTO ads_distribution_demographics (ad_id, age, gender, percentage, uploaded) VALUES (?,?,?,?,0,?)",
+                        [ad_data['id'], demographic['age'], demographic['gender'], demographic['percentage'], batch_id])
 
             # associate this search term to the ad if it isn't already associated
             c.execute("SELECT keyword FROM ad_keywords WHERE ad_id = ?", [ad_data['id']])
             result = c.fetchall()
             all_ad_keywords = [r['keyword'] for r in result] # get first column of each result row
             if search_term not in all_ad_keywords:
-                c.execute("INSERT INTO ad_keywords (ad_id, keyword, uploaded) VALUES (?,?,0)", [ad_data['id'], search_term])
+                c.execute("INSERT INTO ad_keywords (ad_id, keyword, uploaded, batch_id) VALUES (?,?,0,?)", [ad_data['id'], search_term, batch_id])
 
             conn.commit()
 
@@ -299,6 +326,25 @@ for search_term in search_terms:
         #    #print("Added ad to DB: %s" % (ad['ad_creative_body']) )
 
         #print("Database now has %d records" % (len(db)))
+
+
+# mark any ads we didn't see as inactive
+
+if ACTIVE_ADS == 1 and False:
+    # set any ads we saw to active
+    c.execute("""UPDATE ads SET active = 1, uploaded = 0, batch_id = ? WHERE id IN
+        (SELECT ad_id FROM batch_ad_ids WHERE batch_id = ?)
+        """, [batch_id, batch_id])
+    # set any ads we didn't see to inactive
+    c.execute("""UPDATE ads SET active = 0, became_inactive = ?, uploaded = 0, batch_id = ?
+        WHERE id NOT IN (SELECT ad_id FROM batch_ad_ids WHERE batch_id = ?)
+        """, [batch_time, batch_id, batch_id])
+
+
+
+c.execute("UPDATE batch SET end_time = ? WHERE id = ?",
+    [datetime.datetime.now(), batch_id])
+
 
 conn.commit()
 conn.close()

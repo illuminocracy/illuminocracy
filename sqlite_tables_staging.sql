@@ -19,12 +19,16 @@ CREATE TABLE ads (
   impressions_lower int,
   impressions_upper int,
   capture_date_time timestamp,
-  uploaded boolean
+  uploaded boolean,
+  batch_id int,
+  active boolean,
+  became_inactive timestamp
 );
 
 CREATE TABLE ad_keywords (
   ad_id int,
-  keyword text
+  keyword text,
+  batch_id int
   --FOREIGN KEY(ad_id) REFERENCES ads(id)   -- constraint removed so keywords can be retained if ad is updated
 );
 
@@ -32,6 +36,7 @@ CREATE TABLE ads_distribution_region (
   ad_id int,
   region text,
   percentage real,
+  batch_id int,
   FOREIGN KEY(ad_id) REFERENCES ads(id)
 );
 
@@ -40,7 +45,22 @@ CREATE TABLE ads_distribution_demographics (
   age text,
   gender text,
   percentage real,
+  batch_id int,
   FOREIGN KEY(ad_id) REFERENCES ads(id)
+);
+
+CREATE TABLE batch (
+  id int PRIMARY KEY,
+  start_time timestamp,
+  end_time timestamp,
+  active_only boolean
+);
+
+-- table to log ad ids encountered during a batch so that any not encountered
+-- can be marked as inactive
+CREATE TABLE batch_ad_ids (
+  batch_id int,
+  ad_id int
 );
 
 CREATE TABLE exchange_rates (

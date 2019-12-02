@@ -86,11 +86,19 @@ for row in result:
 # update ads_delivery
 
 bq_execute("DELETE FROM illuminocracy.ads_delivery WHERE 1=1")
-bq_execute("""INSERT INTO illuminocracy.ads_delivery (ad_id, delivery_start, delivery_end, currently_running)
-  SELECT id, DATE(delivery_start_time), DATE(delivery_stop_time), false
+bq_execute("""INSERT INTO illuminocracy.ads_delivery (ad_id, delivery_start, delivery_end, currently_running, batch_id)
+  SELECT id, DATE(delivery_start_time), DATE(delivery_stop_time), false, batch_id
   FROM illuminocracy.ads
 """)
-bq_execute("""UPDATE illuminocracy.ads_delivery SET delivery_end = CURRENT_DATE(), currently_running = true WHERE (delivery_end IS NULL OR delivery_end > CURRENT_DATE())""")
+bq_execute("""UPDATE illuminocracy.ads_delivery SET delivery_end = CURRENT_DATE(), currently_running = true WHERE
+    (delivery_end IS NULL OR delivery_end > CURRENT_DATE())""")
+bq_execute("""UPDATE illuminocracy.ads_delivery D SET D.delivery_end =
+    IF(IFNULL(DATE(delivery_stop_time),DATE(A.became_inactive)) <
+        DATE(A.became_inactive), IFNULL(DATE(delivery_stop_time),DATE(A.became_inactive)), DATE(A.became_inactive)),
+    D.currently_running = false
+    FROM illuminocracy.ads A WHERE D.ad_id = A.id AND A.active = false
+    """)
+
 bq_execute("""UPDATE illuminocracy.ads_delivery SET days_running = DATE_DIFF(delivery_end, delivery_start, DAY) + 1 WHERE 1=1""")
 
 
@@ -137,7 +145,8 @@ bq_execute("""INSERT INTO illuminocracy.ads_daily (ad_id,
   impressions_lower,
   impressions_upper,
   impressions_mid,
-  added_date_time)
+  added_date_time,
+  batch_id)
   WITH large_funding_entities AS (
     SELECT funding_entity FROM illuminocracy.ads GROUP BY funding_entity
     HAVING SUM(spend_upper) > 10000),
@@ -152,7 +161,7 @@ bq_execute("""INSERT INTO illuminocracy.ads_daily (ad_id,
     IFNULL(A.impressions_lower,A.impressions_upper) / DD.days_running,
     IFNULL(A.impressions_upper,A.impressions_lower) / DD.days_running,
     (((IFNULL(A.impressions_upper,A.impressions_lower) - IFNULL(A.impressions_lower,A.impressions_upper)) / 2) + IFNULL(A.impressions_lower,A.impressions_upper)) / DD.days_running,
-    CURRENT_TIMESTAMP()
+    CURRENT_TIMESTAMP(), A.batch_id
   FROM
     illuminocracy.ads A
       INNER JOIN large_funding_entities ON A.funding_entity = large_funding_entities.funding_entity
@@ -181,7 +190,8 @@ bq_execute("""INSERT INTO illuminocracy.ads_daily (ad_id,
   impressions_lower,
   impressions_upper,
   impressions_mid,
-  added_date_time)
+  added_date_time,
+  batch_id)
   WITH large_funding_entities AS (
     SELECT funding_entity FROM illuminocracy.ads GROUP BY funding_entity
     HAVING SUM(spend_upper) > 10000),
@@ -196,7 +206,7 @@ bq_execute("""INSERT INTO illuminocracy.ads_daily (ad_id,
     IFNULL(A.impressions_lower,A.impressions_upper) / DD.days_running,
     IFNULL(A.impressions_upper,A.impressions_lower) / DD.days_running,
     (((IFNULL(A.impressions_upper,A.impressions_lower) - IFNULL(A.impressions_lower,A.impressions_upper)) / 2) + IFNULL(A.impressions_lower,A.impressions_upper)) / DD.days_running,
-    CURRENT_TIMESTAMP()
+    CURRENT_TIMESTAMP(), A.batch_id
   FROM
     illuminocracy.ads A
       INNER JOIN large_funding_entities ON A.funding_entity = large_funding_entities.funding_entity
@@ -224,7 +234,8 @@ bq_execute("""INSERT INTO illuminocracy.ads_daily (ad_id,
   impressions_lower,
   impressions_upper,
   impressions_mid,
-  added_date_time)
+  added_date_time,
+  batch_id)
   SELECT
     A.id, D.day, A.funding_entity, NULL, NULL,
     A.page_id, A.page_name,
@@ -234,7 +245,7 @@ bq_execute("""INSERT INTO illuminocracy.ads_daily (ad_id,
     IFNULL(A.impressions_lower,A.impressions_upper) / DD.days_running,
     IFNULL(A.impressions_upper,A.impressions_lower) / DD.days_running,
     (((IFNULL(A.impressions_upper,A.impressions_lower) - IFNULL(A.impressions_lower,A.impressions_upper)) / 2) + IFNULL(A.impressions_lower,A.impressions_upper)) / DD.days_running,
-    CURRENT_TIMESTAMP()
+    CURRENT_TIMESTAMP(), A.batch_id
   FROM
     illuminocracy.ads A
       INNER JOIN illuminocracy.ads_delivery DD ON A.id = DD.ad_id

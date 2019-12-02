@@ -250,7 +250,10 @@ query_to_csv("""SELECT id,
                     spend_upper,
                     impressions_lower,
                     impressions_upper,
-                    capture_date_time
+                    capture_date_time,
+                    batch_id,
+                    active,
+                    became_inactive
   FROM ads WHERE uploaded = 0""",
     'ads.csv',
     ['id',
@@ -270,7 +273,10 @@ query_to_csv("""SELECT id,
     'spend_upper',
     'impressions_lower',
     'impressions_upper',
-    'capture_date_time'])
+    'capture_date_time',
+    'batch_id',
+    'active',
+    'became_inactive'])
 
 gcs_upload_blob('ads.csv')
 
@@ -292,24 +298,31 @@ schema = [
     bigquery.SchemaField('spend_upper', 'INT64'),  # defaults to NULLABLE
     bigquery.SchemaField('impressions_lower', 'INT64'),  # defaults to NULLABLE
     bigquery.SchemaField('impressions_upper', 'INT64'),  # defaults to NULLABLE
-    bigquery.SchemaField('capture_date_time', 'TIMESTAMP', mode='REQUIRED')   # defaults to NULLABLE
+    bigquery.SchemaField('capture_date_time', 'TIMESTAMP', mode='REQUIRED'),   # defaults to NULLABLE
+    bigquery.SchemaField('batch_id', 'INT64'),  # defaults to NULLABLE
+    bigquery.SchemaField('active', 'INT64'),  # defaults to NULLABLE
+    bigquery.SchemaField('became_inactive', 'TIMESTAMP')  # defaults to NULLABLE
 ]
 
 bq_load_csv_in_gcs('ads.csv', 'ads', schema, write_disposition = 'WRITE_APPEND')
 
-c.execute("SELECT MIN(capture_date_time) AS refresh_cutoff FROM ads WHERE uploaded = 0")
+#c.execute("SELECT MIN(capture_date_time) AS refresh_cutoff FROM ads WHERE uploaded = 0")
+#result = c.fetchall()
+#refresh_cutoff = result[0]['refresh_cutoff']
+
+c.execute("SELECT MAX(id) AS id FROM batch")
 result = c.fetchall()
-refresh_cutoff = result[0]['refresh_cutoff']
+batch_id = result[0]['id']
 
 # remove old versions of any duplicate ads
 
-print("refresh cutoff is %s, deleting any older ads that are duplicated from illuminocracy.ads" % (refresh_cutoff))
+print("batch id is %d, deleting any older ads that are duplicated from illuminocracy.ads" % (batch_id))
 
 query_params = [
-    bigquery.ScalarQueryParameter("refresh_cutoff", "TIMESTAMP", refresh_cutoff)
+    bigquery.ScalarQueryParameter("batch_id", "INT64", batch_id)
 ]
 bq_execute("""DELETE FROM illuminocracy.ads WHERE id IN
-    (SELECT id FROM illuminocracy.ads GROUP BY id HAVING COUNT(*) > 1 ) AND capture_date_time < @refresh_cutoff""", query_params)
+    (SELECT id FROM illuminocracy.ads GROUP BY id HAVING COUNT(*) > 1 ) AND batch_id < @batch_id""", query_params)
 
 c.execute("UPDATE ads SET uploaded = 1 WHERE uploaded = 0")
 
@@ -320,15 +333,16 @@ delete_local_csv('ads.csv')
 
 if UPLOAD_KEYWORDS == True:
 
-    query_to_csv("SELECT ad_id, keyword FROM ad_keywords WHERE uploaded = 0",
+    query_to_csv("SELECT ad_id, keyword, batch_id FROM ad_keywords WHERE uploaded = 0",
         'ad_keywords.csv',
-        ['ad_id', 'keyword'])
+        ['ad_id', 'keyword', 'batch_id'])
 
     gcs_upload_blob('ad_keywords.csv')
 
     schema = [
         bigquery.SchemaField('ad_id', 'INT64', mode='REQUIRED'),
-        bigquery.SchemaField('keyword', 'STRING', mode='REQUIRED')  # defaults to NULLABLE
+        bigquery.SchemaField('keyword', 'STRING', mode='REQUIRED'),  # defaults to NULLABLE
+        bigquery.SchemaField('batch_id', 'INT64')  # defaults to NULLABLE
     ]
 
     bq_load_csv_in_gcs('ad_keywords.csv', 'ad_keywords', schema, write_disposition = 'WRITE_APPEND')
@@ -342,16 +356,17 @@ if UPLOAD_KEYWORDS == True:
 
 if UPLOAD_REGION == True:
 
-    query_to_csv("SELECT ad_id, region, percentage FROM ads_distribution_region WHERE uploaded = 0",
+    query_to_csv("SELECT ad_id, region, percentage, batch_id FROM ads_distribution_region WHERE uploaded = 0",
         'ads_distribution_region.csv',
-        ['ad_id', 'region', 'percentage'])
+        ['ad_id', 'region', 'percentage', 'batch_id'])
 
     gcs_upload_blob('ads_distribution_region.csv')
 
     schema = [
         bigquery.SchemaField('ad_id', 'INT64', mode='REQUIRED'),
         bigquery.SchemaField('region', 'STRING', mode='REQUIRED'),
-        bigquery.SchemaField('percentage', 'FLOAT64', mode='REQUIRED')  # defaults to NULLABLE
+        bigquery.SchemaField('percentage', 'FLOAT64', mode='REQUIRED'),  # defaults to NULLABLE
+        bigquery.SchemaField('batch_id', 'INT64')  # defaults to NULLABLE
     ]
 
     bq_load_csv_in_gcs('ads_distribution_region.csv', 'ads_distribution_region', schema, write_disposition = 'WRITE_APPEND')
@@ -365,9 +380,9 @@ if UPLOAD_REGION == True:
 
 if UPLOAD_DEMOGRAPHICS == True:
 
-    query_to_csv("SELECT ad_id, age, gender, percentage FROM ads_distribution_demographics WHERE uploaded = 0",
+    query_to_csv("SELECT ad_id, age, gender, percentage, batch_id FROM ads_distribution_demographics WHERE uploaded = 0",
         'ads_distribution_demographics.csv',
-        ['ad_id', 'age', 'gender', 'percentage'])
+        ['ad_id', 'age', 'gender', 'percentage', 'batch_id'])
 
     gcs_upload_blob('ads_distribution_demographics.csv')
 
@@ -375,7 +390,8 @@ if UPLOAD_DEMOGRAPHICS == True:
         bigquery.SchemaField('ad_id', 'INT64', mode='REQUIRED'),
         bigquery.SchemaField('age', 'STRING', mode='REQUIRED'),
         bigquery.SchemaField('gender', 'STRING', mode='REQUIRED'),
-        bigquery.SchemaField('percentage', 'FLOAT64', mode='REQUIRED')  # defaults to NULLABLE
+        bigquery.SchemaField('percentage', 'FLOAT64', mode='REQUIRED'),  # defaults to NULLABLE
+        bigquery.SchemaField('batch_id', 'INT64'),  # defaults to NULLABLE
     ]
 
     bq_load_csv_in_gcs('ads_distribution_demographics.csv', 'ads_distribution_demographics', schema, write_disposition = 'WRITE_APPEND')
