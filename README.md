@@ -19,6 +19,8 @@ The following python libraries are required to run these scripts:
 # Scripts
 These are the key scripts that are used by this project.  They should be run in the order they are listed below.
 
+NB: If running these on a Mac, run them with `caffeinate` e.g. `caffeinate -s ./get_ads.py`
+
 ## get_ads.py
 This downloads the data from the Facebook API into a local SQLite database (which is created with the DDL within the `sqlite_tables_staging.sql` file).  A valid Facebook API access token must be added to `config.yaml`.  The parameters used to query the API are hard coded in the script but could easily be changed.  The API is documented here: https://www.facebook.com/ads/library/api/?source=archive-landing-page.  The script is hard coded to only download `ACTIVE` adverts, however this can be changed for the first run by changing `ACTIVE` on the line of code below to `ALL`:
 

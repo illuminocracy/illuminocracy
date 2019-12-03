@@ -270,7 +270,7 @@ for search_term in search_terms:
                     capture_date_time,
                     uploaded,
                     batch_id)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", [
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", [
                         ad_data['id'],
                         ad_data['creation_time'],
                         ad_data['creative_body'],
@@ -298,7 +298,7 @@ for search_term in search_terms:
                         [ad_data['id'], region['region'], region['percentage'], batch_id])
 
                 for demographic in ad_distribution_demographics:
-                    c.execute("INSERT INTO ads_distribution_demographics (ad_id, age, gender, percentage, uploaded) VALUES (?,?,?,?,0,?)",
+                    c.execute("INSERT INTO ads_distribution_demographics (ad_id, age, gender, percentage, uploaded, batch_id) VALUES (?,?,?,?,0,?)",
                         [ad_data['id'], demographic['age'], demographic['gender'], demographic['percentage'], batch_id])
 
             # associate this search term to the ad if it isn't already associated
