@@ -300,7 +300,7 @@ schema = [
     bigquery.SchemaField('impressions_upper', 'INT64'),  # defaults to NULLABLE
     bigquery.SchemaField('capture_date_time', 'TIMESTAMP', mode='REQUIRED'),   # defaults to NULLABLE
     bigquery.SchemaField('batch_id', 'INT64'),  # defaults to NULLABLE
-    bigquery.SchemaField('active', 'INT64'),  # defaults to NULLABLE
+    bigquery.SchemaField('active', 'BOOLEAN'),  # defaults to NULLABLE
     bigquery.SchemaField('became_inactive', 'TIMESTAMP')  # defaults to NULLABLE
 ]
 
