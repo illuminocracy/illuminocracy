@@ -12,7 +12,7 @@ import re
 
 # SET THIS VALUE TO INSTRUCT SCRIPT WHETHER TO DOWNLOAD ALL ADS OR ONLY ACTIVE ADS
 
-ACTIVE_ADS = 0
+ACTIVE_ADS = 1
 
 
 
@@ -330,7 +330,7 @@ for search_term in search_terms:
 
 # mark any ads we didn't see as inactive
 
-if ACTIVE_ADS == 1 and False:
+if ACTIVE_ADS == 1:
     # set any ads we saw to active
     c.execute("""UPDATE ads SET active = 1, uploaded = 0, batch_id = ? WHERE id IN
         (SELECT ad_id FROM batch_ad_ids WHERE batch_id = ?)

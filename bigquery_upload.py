@@ -42,7 +42,7 @@ c.execute("SELECT MIN(date(SUBSTR(delivery_start_time,1,10))) AS min_date FROM a
 result = c.fetchall()
 min_date = result[0]['min_date']
 
-c.execute("SELECT MAX(date(SUBSTR(delivery_start_time,1,10))) AS max_date FROM ads")
+c.execute("SELECT MAX(date(SUBSTR(delivery_stop_time,1,10))) AS max_date FROM ads")
 result = c.fetchall()
 max_date = result[0]['max_date']
 
