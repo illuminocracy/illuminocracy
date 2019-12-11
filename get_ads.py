@@ -335,9 +335,10 @@ if ACTIVE_ADS == 1:
     c.execute("""UPDATE ads SET active = 1, uploaded = 0, batch_id = ? WHERE id IN
         (SELECT ad_id FROM batch_ad_ids WHERE batch_id = ?)
         """, [batch_id, batch_id])
-    # set any ads we didn't see to inactive
+    # set any active ads we didn't see to inactive
     c.execute("""UPDATE ads SET active = 0, became_inactive = ?, uploaded = 0, batch_id = ?
         WHERE id NOT IN (SELECT ad_id FROM batch_ad_ids WHERE batch_id = ?)
+        AND (active = 1 or active is null)
         """, [batch_time, batch_id, batch_id])
 
 
