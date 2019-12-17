@@ -81,6 +81,10 @@ CREATE TABLE search_terms (
   date_added timestamp
 );
 
+CREATE INDEX idx_ads_distribution_region_ad_id ON ads_distribution_region (ad_id);
+CREATE INDEX idx_ads_distribution_demographics_ad_id ON ads_distribution_demographics (ad_id);
+
+
 INSERT INTO search_terms (term, date_added) VALUES
   ('brexit', '2019-11-10 12:00:00'),
   ('conservative', '2019-11-10 12:00:00'),

@@ -9,12 +9,18 @@ import sqlite3
 import datetime
 import yaml
 import re
+import backoff
 
 # SET THIS VALUE TO INSTRUCT SCRIPT WHETHER TO DOWNLOAD ALL ADS OR ONLY ACTIVE ADS
 
 ACTIVE_ADS = 1
 
 
+@backoff.on_exception(backoff.expo,
+                      requests.exceptions.RequestException,
+                      max_time=600)
+def get_url(url):
+    return requests.get(url)
 
 def dict_factory(cursor, row):
     d = {}
@@ -120,7 +126,7 @@ for search_term in search_terms:
 
         # Download ads
 
-        response = requests.get(url)
+        response = get_url(url)
         data = response.json()
 
         if 'error' in data.keys():
